@@ -59,3 +59,13 @@ typings/
 
 # next.js build output
 .next
+
+.ruby-version
+tsconfig.json
+.DS_Store
+.*.bak
+*.ig
+
+# Editor files
+.*.sw?
+.#*
