@@ -1,6 +1,9 @@
 const AssuredCampaign = artifacts.require("./AssuredCampaign.sol");
-const tryCatch = require("./exceptions").tryCatch;
-const errTypes = require("./exceptions").errTypes;
+const tryCatch = require("./helpers/exceptions").tryCatch;
+const errTypes = require("./helpers/exceptions").errTypes;
+
+
+const deployer_address = AssuredCampaign.class_defaults.from;
 
 const params = ({start, end, target, profit, minAmount, recepient}) => {
   let current_time = Date.now();
@@ -10,18 +13,22 @@ const params = ({start, end, target, profit, minAmount, recepient}) => {
     target || 50,
     profit || 10,
     minAmount || 2,
-    recepient || "0x31119260c0Bd3a8Ad822878B687efc3AFB60B603"
+    recepient || deployer_address
   ];
 };
 
 contract("Testing campaign", async accounts => {
 
   it("should deploy without an error", async () => {
+    let a = await AssuredCampaign.new(...params({}));
     assert.exists(await AssuredCampaign.new(...params({})));
   });
 
   it("should have a far enough start time", async () => {
-    assert.isOk(await AssuredCampaign.new(...params({start: Date.now()})));
+    await tryCatch(
+      AssuredCampaign.new(...params({start: 1})),
+      errTypes.revert
+    );
   });
 
   it("should an entrepreneur's profit less than the target raising amount", async () => {
@@ -34,6 +41,13 @@ contract("Testing campaign", async accounts => {
       errTypes.revert
     );
     assert.isOk(await AssuredCampaign.new(...params({profit:9, target:10})));
+  });
+
+  it("should store recepient's address separately than entrepreneur's address, irrespective of whether they're the same", async () => {
+    let recepient = "0x31119260c0Bd3a8Ad822878B687efc3AFB60B603";
+    let c = await AssuredCampaign.new(...params({recepient}));
+    assert.notEqual(recepient, deployer_address, "For this test, recepient address has to be different from entrepreneur's address");
+    assert.notEqual(await c.entAccount, await c.recepientAccount);
   });
 
 });
