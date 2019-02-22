@@ -26,6 +26,8 @@ contract AssuredCampaign {
         require(end - start > 24 hours, "The campaign's duration should at least be 24 hours");
         require(start > now + 1 minutes, "The start time should at least be a minute from now");
         require(profit < target, "Entrepreneur's profit should be less than the target raising amount");
+        require(ent != address(0x0));
+        require(recepient != address(0x0));
         startTime = start;
         deadline = end;
         entProfitAmount = profit;

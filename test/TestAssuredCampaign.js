@@ -30,6 +30,21 @@ contract("Testing campaign", async accounts => {
     );
   });
 
+
+  it("should have a nonzero entrepreneur account", async () => {
+    await tryCatch(
+      AssuredCampaign.new(...params({ ent: "0x0000000000000000000000000000000000000000" })),
+      errTypes.revert
+    );
+  });
+
+  it("should have a nonzero recepient account", async () => {
+    await tryCatch(
+      AssuredCampaign.new(...params({ recepient: "0x0000000000000000000000000000000000000000" })),
+      errTypes.revert
+    );
+  });
+
   it("should an entrepreneur's profit less than the target raising amount", async () => {
     await tryCatch(
       AssuredCampaign.new(...params({ profit: 10, target: 10 })),
@@ -56,4 +71,4 @@ contract("Testing campaign", async accounts => {
   });
 });
 
-// 2549405445, 8549405445, 50, 10, 2, 0x31119260c0Bd3a8Ad822878B687efc3AFB60B603
+// 2549405445, 8549405445, 50, 10, 2, 0x31119260c0Bd3a8Ad822878B687efc3AFB60B603, 0x31119260c0Bd3a8Ad822878B687efc3AFB60B603
