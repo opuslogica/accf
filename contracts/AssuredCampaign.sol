@@ -16,8 +16,8 @@ contract AssuredCampaign {
     mapping (address => bool) receivedRefunds;
     uint256 public amountRaised;
 
-    bool entProfitted = false;
-    bool recepientReceivedFunding = false;
+    bool entProfitted;
+    bool recepientReceivedFunding;
 
     constructor(uint256 start, uint256 end, uint256 target, uint256 profit, uint256 minAmount,
                 address payable ent, address payable recepient)
@@ -48,7 +48,7 @@ contract AssuredCampaign {
         require(now < deadline, "You can't pledge after the deadline");
         require(balanceOf[entAccount] >= (targetAmount / contribMinAmount + 1) * monetaryIndivisibleAmount, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
         balanceOf[msg.sender] = amount;
-        receivedRefunds[msg.sender] = false;
+        receivedRefunds[msg.sender];
         amountRaised += amount;
     }
 
