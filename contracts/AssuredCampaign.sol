@@ -19,8 +19,8 @@ contract AssuredCampaign {
     bool entProfitted = false;
     bool recepientReceivedFunding = false;
 
-    constructor(uint256 start, uint256 end, uint256 target, uint256 profit,
-                uint256 minAmount, address payable recepient)
+    constructor(uint256 start, uint256 end, uint256 target, uint256 profit, uint256 minAmount,
+                address payable ent, address payable recepient)
     public
     {
         require(end - start > 24 hours, "The campaign's duration should at least be 24 hours");
@@ -30,7 +30,7 @@ contract AssuredCampaign {
         deadline = end;
         entProfitAmount = profit;
         targetAmount = target;
-        entAccount = msg.sender;
+        entAccount = ent;
         recepientAccount = recepient;
         contribMinAmount = minAmount;
     }
