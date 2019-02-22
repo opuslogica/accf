@@ -76,7 +76,6 @@ contract AssuredCampaign {
     function satisfied_contract_termination_process()
     public
     {
-        require(msg.sender == entAccount, "Only Entrepreneur's can distribute raised funds");
         require(address(this).balance >= targetAmount + balanceOf[entAccount], "Can't distribute raised funds if the target amount isn't reached");
         require(now > deadline, "Can't distribute raised funds before the deadline");
         uint256 entShare = balanceOf[entAccount] + entProfitAmount;
