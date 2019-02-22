@@ -43,7 +43,7 @@ contract AssuredCampaign {
     {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(msg.sender != entAccount, "Entrepreneur's can't pledge");
-        require(amount > contribMinAmount, "Pledging amount should be greater than contribMinAmount");
+        require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
         require(startTime < now, "You can't pledge before the start time");
         require(now < deadline, "You can't pledge after the deadline");
         require(balanceOf[entAccount] >= (targetAmount / contribMinAmount + 1) * monetaryIndivisibleAmount, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
