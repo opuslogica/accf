@@ -23,7 +23,7 @@ contract AssuredCampaign {
                 uint256 minAmount, address payable recepient)
     public
     {
-        require(end - start > 5 minutes, "The deadline should be at least 5 minutes away from the start time");
+        require(end - start > 24 hours, "The campaign's duration should at least be 24 hours");
         require(start > now + 1 minutes, "The start time should at least be a minute from now");
         require(profit < target, "Entrepreneur's profit should be less than the target raising amount");
         startTime = start;
