@@ -11,6 +11,7 @@ contract AssuredCampaign {
     uint256 public targetAmount;
     uint256 public contribMinAmount;
     uint256 public monetaryIndivisibleAmount = 1;
+    uint256 public entStakePct;
 
     mapping (address => uint256) balanceOf;
     mapping (address => bool) receivedRefunds;
@@ -19,7 +20,8 @@ contract AssuredCampaign {
     bool entProfitted;
     bool recepientReceivedFunding;
 
-    constructor(uint256 start, uint256 end, uint256 target, uint256 profit, uint256 minAmount,
+    constructor(uint256 start, uint256 end, uint256 target, uint256 profit,
+                uint256 minAmount, uint256 stakePct,
                 address payable ent, address payable recepient)
     public
     {
@@ -28,11 +30,15 @@ contract AssuredCampaign {
         require(profit < target, "Entrepreneur's profit should be less than the target raising amount");
         require(ent != address(0x0));
         require(recepient != address(0x0));
+        require(minAmount < target, "target amount should be greater than min contrib amount");
+        require(target > 0, "target amount should be nonzero");
+        require(stakePct > 0);
         startTime = start;
         deadline = end;
         entProfitAmount = profit;
         targetAmount = target;
         entAccount = ent;
+        entStakePct = stakePct;
         recepientAccount = recepient;
         contribMinAmount = minAmount;
     }
@@ -46,7 +52,7 @@ contract AssuredCampaign {
         require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
         require(startTime < now, "You can't pledge before the start time");
         require(now < deadline, "You can't pledge after the deadline");
-        require(balanceOf[entAccount] >= (targetAmount / contribMinAmount + 1) * monetaryIndivisibleAmount, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
+        require(balanceOf[entAccount] >= targetAmount * entStakePct, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
         balanceOf[msg.sender] = amount;
         receivedRefunds[msg.sender];
         amountRaised += amount;

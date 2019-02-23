@@ -4,7 +4,7 @@ const errTypes = require("./helpers/exceptions").errTypes;
 
 const deployer_address = AssuredCampaign.class_defaults.from;
 
-const params = ({ start, end, target, profit, minAmount, ent, recepient }) => {
+const params = ({ start, end, target, profit, minAmount, stakePct, ent, recepient }) => {
   let current_time = Date.now();
   return [
     start || current_time - 120,
@@ -12,6 +12,7 @@ const params = ({ start, end, target, profit, minAmount, ent, recepient }) => {
     target || 50,
     profit || 10,
     minAmount || 2,
+    stakePct || 10,
     ent || deployer_address,
     recepient || deployer_address
   ];
