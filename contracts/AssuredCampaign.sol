@@ -148,6 +148,7 @@ contract AssuredCampaign {
                 refunded: false
             });
             pledges.push(p);
+            addressToPledge[msg.sender] = p;
         }
         amountRaised += amount;
 
