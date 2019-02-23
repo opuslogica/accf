@@ -5,7 +5,8 @@ contract AssuredCampaign {
     uint256 public startTime;
     uint256 public deadline;
 
-    address payable public entAccount;
+    address public entHotAccount;
+    address payable public entColdAccount;
     address payable public recepientAccount;
 
     uint256 public targetAmount;
@@ -63,13 +64,14 @@ contract AssuredCampaign {
 
     constructor(uint256 start, uint256 end, uint256 target, uint256 profit,
                 uint256 minAmount, uint256 stakePct,
-                address payable ent, address payable recepient)
+                address ent_hot_account, address payable ent_cold_account, address payable recepient)
     public
     {
         require(end - start > 24 hours, "The campaign's duration should at least be 24 hours");
         require(start > now + 1 minutes, "The start time should at least be a minute from now");
         require(profit < target, "Entrepreneur's profit should be less than the target raising amount");
-        require(ent != address(0x0));
+        require(ent_hot_account != address(0x0));
+        require(ent_cold_account != address(0x0));
         require(recepient != address(0x0));
         require(minAmount < target, "target amount should be greater than min contrib amount");
         require(target > 0, "target amount should be nonzero");
@@ -78,7 +80,8 @@ contract AssuredCampaign {
         deadline = end;
         entProfitAmount = profit;
         targetAmount = target;
-        entAccount = ent;
+        entHotAccount = ent_hot_account;
+        entColdAccount = ent_cold_account;
         entStakePct = stakePct;
         recepientAccount = recepient;
         contribMinAmount = minAmount;
@@ -90,7 +93,7 @@ contract AssuredCampaign {
     payable
     {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
-        require(entAccount == msg.sender, "Only the entrepreneur can stake");
+        require(entHotAccount == msg.sender, "Only the entrepreneur's hot account can stake");
         stakedAmount += msg.value;
     }
 
@@ -131,13 +134,13 @@ contract AssuredCampaign {
     _refundingStage
     public
     {
-        require(msg.sender == entAccount, "Only the entrepreneur can retrieve the remaining stake");
+        require(msg.sender == entHotAccount, "Only the entrepreneur's hot account can retrieve the remaining stake");
         require(!entGotRemainingStake, "Can only retrieve the remaining stake once");
         uint256 remaining_stake = calculateRemainingStake();
         require(remaining_stake > 0, "No remainder; The stake is proportionally divisible for all pledgers");
         if (!entGotRemainingStake) {
             entGotRemainingStake = true;
-            msg.sender.transfer(remaining_stake);
+            entColdAccount.transfer(remaining_stake);
         }
     }
 
@@ -149,7 +152,7 @@ contract AssuredCampaign {
         uint256 recepientShare = amountRaised - entShare;
         if (!entProfitted) {
             entProfitted = true;
-            entAccount.transfer(entShare);
+            entColdAccount.transfer(entShare);
         }
         if (!recepientReceivedFunding) {
             recepientReceivedFunding = true;

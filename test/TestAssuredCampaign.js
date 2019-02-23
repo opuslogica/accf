@@ -4,7 +4,8 @@ const errTypes = require("./helpers/exceptions").errTypes;
 
 const deployer_address = AssuredCampaign.class_defaults.from;
 
-const params = ({ start, end, target, profit, minAmount, stakePct, ent, recepient }) => {
+const params = ({ start, end, target, profit, minAmount, stakePct,
+                  ent_hot_account, ent_cold_account, recepient }) => {
   let current_time = Date.now();
   return [
     start || current_time - 120,
@@ -13,7 +14,8 @@ const params = ({ start, end, target, profit, minAmount, stakePct, ent, recepien
     profit || 10,
     minAmount || 2,
     stakePct || 10,
-    ent || deployer_address,
+    ent_hot_account || deployer_address,
+    ent_cold_account || deployer_address,
     recepient || deployer_address
   ];
 };
@@ -32,9 +34,13 @@ contract("Testing campaign", async accounts => {
   });
 
 
-  it("should have a nonzero entrepreneur account", async () => {
+  it("should have nonzero entrepreneur accounts", async () => {
     await tryCatch(
-      AssuredCampaign.new(...params({ ent: "0x0000000000000000000000000000000000000000" })),
+      AssuredCampaign.new(...params({ ent_hot_account: "0x0000000000000000000000000000000000000000" })),
+      errTypes.revert
+    );
+    await tryCatch(
+      AssuredCampaign.new(...params({ ent_cold_account: "0x0000000000000000000000000000000000000000" })),
       errTypes.revert
     );
   });
