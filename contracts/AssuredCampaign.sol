@@ -102,12 +102,12 @@ contract AssuredCampaign {
         require(end - start > 24 hours, "The campaign's duration should at least be 24 hours");
         require(start > now + 1 minutes, "The start time should at least be a minute from now");
         require(profit < target, "Entrepreneur's profit should be less than the target raising amount");
-        require(ent_hot_account != address(0x0));
-        require(ent_cold_account != address(0x0));
-        require(recepient != address(0x0));
+        require(ent_hot_account != address(0x0), "An account should be nonzero");
+        require(ent_cold_account != address(0x0), "An account should be nonzero");
+        require(recepient != address(0x0), "An account should be nonzero");
         require(minAmount < target, "target amount should be greater than min contrib amount");
         require(target > 0, "target amount should be nonzero");
-        require(stakePct > 0);
+        require(stakePct > 0, "campaign must have a positive staking percentage");
         startTime = start;
         deadline = end;
         entProfitAmount = profit;
@@ -127,7 +127,7 @@ contract AssuredCampaign {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(entHotAccount == msg.sender, "Only the entrepreneur's hot account can stake");
         stakedAmount += msg.value;
-        emit newStake(amount, stakedAmount >= targetAmount *entStakePct);
+        emit newStake(amount, stakedAmount >= targetAmount * entStakePct);
     }
 
 
@@ -156,8 +156,8 @@ contract AssuredCampaign {
 
 
     function refund()
-    _refundingStage
     public
+    _refundingStage
     {
         require(addressToPledge[msg.sender].balance > 0, "must have pledged something to get a refund");
         require(!addressToPledge[msg.sender].refunded, "can't get a refund more than once");
@@ -168,8 +168,8 @@ contract AssuredCampaign {
     }
 
     function retrieveRemainingStake()
-    _refundingStage
     public
+    _refundingStage
     {
         require(msg.sender == entHotAccount, "Only the entrepreneur's hot account can retrieve the remaining stake");
         require(!entGotRemainingStake, "Can only retrieve the remaining stake once");
@@ -183,8 +183,8 @@ contract AssuredCampaign {
     }
 
     function satisfied_contract_termination_process()
-    _terminationStage
     public
+    _terminationStage
     {
         uint256 entShare = stakedAmount + entProfitAmount;
         uint256 recepientShare = amountRaised - entShare;
