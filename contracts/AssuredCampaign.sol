@@ -5,20 +5,61 @@ contract AssuredCampaign {
     uint256 public startTime;
     uint256 public deadline;
 
-    uint256 public entProfitAmount;
     address payable public entAccount;
     address payable public recepientAccount;
+
     uint256 public targetAmount;
     uint256 public contribMinAmount;
     uint256 public monetaryIndivisibleAmount = 1;
     uint256 public entStakePct;
+    uint256 public entProfitAmount;
 
-    mapping (address => uint256) balanceOf;
-    mapping (address => bool) receivedRefunds;
+    uint256 public stakedAmount;
+
+    struct Pledge {
+        address payable pledging_address;
+        uint256 balance;
+        bool refunded;
+    }
+
+    Pledge[] pledges;
+    mapping (address => Pledge) addressToPledge;
     uint256 public amountRaised;
 
     bool entProfitted;
+    bool entGotRemainingStake;
     bool recepientReceivedFunding;
+
+
+    modifier _stakingStage()
+    {
+        require(now < startTime, "Entrepreneur can't stake after the start time");
+        _;
+    }
+
+
+    modifier _pledgingStage()
+    {
+        require(startTime < now, "You can't pledge before the start time");
+        require(now < deadline, "You can't pledge after the deadline");
+        require(stakedAmount >= targetAmount * entStakePct, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
+        _;
+    }
+
+    modifier _terminationStage()
+    {
+        require(amountRaised >= targetAmount + stakedAmount, "Can't distribute raised funds if the target amount isn't reached");
+        require(now > deadline, "Can't distribute raised funds before the deadline");
+        _;
+    }
+
+    modifier _refundingStage()
+    {
+        require(now > deadline, "Can't request a refund prior to the deadline");
+        require(amountRaised <= targetAmount + stakedAmount, "Can't get a refund if the target amount is reached");
+        _;
+    }
+
 
     constructor(uint256 start, uint256 end, uint256 target, uint256 profit,
                 uint256 minAmount, uint256 stakePct,
@@ -43,48 +84,68 @@ contract AssuredCampaign {
         contribMinAmount = minAmount;
     }
 
-    function pledge(uint256 amount)
+    function stake(uint256 amount)
     public
+    _stakingStage
     payable
     {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
-        require(msg.sender != entAccount, "Entrepreneur's can't pledge");
+        require(entAccount == msg.sender, "Only the entrepreneur can stake");
+        stakedAmount += msg.value;
+    }
+
+
+    function pledge(uint256 amount)
+    public
+    _pledgingStage
+    payable
+    {
+        require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
-        require(startTime < now, "You can't pledge before the start time");
-        require(now < deadline, "You can't pledge after the deadline");
-        require(balanceOf[entAccount] >= targetAmount * entStakePct, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
-        balanceOf[msg.sender] = amount;
-        receivedRefunds[msg.sender];
+
+        if (pledgeExists(msg.sender)) {
+            addressToPledge[msg.sender].balance += amount;
+        } else {
+            Pledge memory newPledge = Pledge({
+                pledging_address: address(msg.sender),
+                balance: amount,
+                refunded: false
+            });
+            pledges.push(newPledge);
+        }
         amountRaised += amount;
     }
 
-    function stake(uint256 amount)
-    public
-    payable
-    {
-        require(now < startTime, "Entrepreneur can't stake after the start time");
-        require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
-        require(entAccount == msg.sender, "Only the entrepreneur can stake");
-        balanceOf[entAccount] += msg.value;
-    }
 
     function refund()
+    _refundingStage
     public
     {
-        require(now > deadline, "Can't request a refund prior to the deadline");
-        require(msg.sender != entAccount, "Entrepreneur's can't take back their stake");
-        require(!receivedRefunds[msg.sender], "Must have pledged something to refund");
-        require(address(this).balance <= targetAmount + balanceOf[entAccount], "Can't get a refund if the target amount is reached");
-        receivedRefunds[msg.sender] = true;
-        msg.sender.transfer(balanceOf[msg.sender] * (1 + balanceOf[entAccount] / amountRaised));
+        require(addressToPledge[msg.sender].balance > 0, "must have pledged something to get a refund");
+        require(!addressToPledge[msg.sender].refunded, "can't get a refund more than once");
+        addressToPledge[msg.sender].refunded = true;
+        msg.sender.transfer(addressToPledge[msg.sender].balance * (1 + stakedAmount / amountRaised));
+    }
+
+    function retrieveRemainingStake()
+    _refundingStage
+    public
+    {
+        require(msg.sender == entAccount, "Only the entrepreneur can retrieve the remaining stake");
+        require(!entGotRemainingStake, "Can only retrieve the remaining stake once");
+        uint256 remaining_stake = calculateRemainingStake();
+        require(remaining_stake > 0, "No remainder; The stake is proportionally divisible for all pledgers");
+        if (!entGotRemainingStake) {
+            entGotRemainingStake = true;
+            msg.sender.transfer(remaining_stake);
+        }
     }
 
     function satisfied_contract_termination_process()
+    _terminationStage
     public
     {
-        require(address(this).balance >= targetAmount + balanceOf[entAccount], "Can't distribute raised funds if the target amount isn't reached");
-        require(now > deadline, "Can't distribute raised funds before the deadline");
-        uint256 entShare = balanceOf[entAccount] + entProfitAmount;
+        uint256 entShare = stakedAmount + entProfitAmount;
         uint256 recepientShare = amountRaised - entShare;
         if (!entProfitted) {
             entProfitted = true;
@@ -94,5 +155,34 @@ contract AssuredCampaign {
             recepientReceivedFunding = true;
             recepientAccount.transfer(recepientShare);
         }
+    }
+
+    function pledgeExists(address a)
+    public
+    view
+    returns (bool) {
+        return !(
+            addressToPledge[a].pledging_address == address(0x0) &&
+            addressToPledge[a].balance == 0 &&
+            !addressToPledge[a].refunded
+        );
+    }
+
+
+    function calculateRemainingStake()
+    internal
+    view
+    returns (uint256)
+    {
+        uint256 cursor;
+        for (uint i; i < pledges.length; i++) {
+            cursor += pledges[i].balance * stakedAmount / amountRaised;
+        }
+
+        uint256 remainder;
+        if (cursor >= 0) {
+            remainder = stakedAmount - cursor;
+        }
+        return remainder;
     }
 }
