@@ -88,7 +88,7 @@ contract AssuredCampaign {
         uint256 recepientShare = amountRaised - entShare;
         if (!entProfitted) {
             entProfitted = true;
-            msg.sender.transfer(entShare);
+            entAccount.transfer(entShare);
         }
         if (!recepientReceivedFunding) {
             recepientReceivedFunding = true;
