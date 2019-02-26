@@ -11,7 +11,6 @@ contract AssuredCampaign {
 
     uint256 public targetAmount;
     uint256 public contribMinAmount;
-    uint256 public monetaryIndivisibleAmount = 1;
     uint256 public entStakePct;
     uint256 public entProfitAmount;
 
