@@ -5,37 +5,15 @@ const jumpForward = require("./helpers/time").jumpForward;
 const make_snapshot = require("./helpers/time").make_snapshot;
 const goto_snapshot = require("./helpers/time").goto_snapshot;
 
-const deployer_address = AssuredCampaign.class_defaults.from;
-
-function params({
-  start,
-  end,
-  target,
-  profit,
-  minAmount,
-  stakePct,
-  ent_hot_account,
-  ent_cold_account,
-  recepient
-}) {
-  let current_time = Date.now();
-  return [
-    start || current_time - 120,
-    end || (start || current_time) - 420,
-    target || 50,
-    profit || 10,
-    minAmount || 2,
-    stakePct || 10,
-    ent_hot_account || deployer_address,
-    ent_cold_account || deployer_address,
-    recepient || deployer_address
-  ];
-};
-
 
 contract("Testing campaign", async accounts => {
 
   let starting_point;
+  let deployer_address;
+
+  before(async () => {
+    deployer_address = (await web3.eth.getAccounts())[0];
+  });
 
   beforeEach(() => {
     make_snapshot(Date.now(), (err, res) => {
@@ -44,6 +22,31 @@ contract("Testing campaign", async accounts => {
   });
 
   afterEach(() => goto_snapshot(starting_point));
+
+  function params({
+    start,
+    end,
+    target,
+    profit,
+    minAmount,
+    stakePct,
+    ent_hot_account,
+    ent_cold_account,
+    recepient
+  }) {
+    let current_time = Date.now();
+    return [
+      start || current_time - 120,
+      end || (start || current_time) - 420,
+      target || 50,
+      profit || 10,
+      minAmount || 2,
+      stakePct || 10,
+      ent_hot_account || deployer_address,
+      ent_cold_account || deployer_address,
+      recepient || deployer_address
+    ];
+  };
 
   it("should deploy without an error", async () => {
     let a = await AssuredCampaign.new(...params({}));
@@ -100,7 +103,7 @@ contract("Testing campaign", async accounts => {
   });
 
   it("should store recepient's address separately than entrepreneur's address, irrespective of whether they're the same", async () => {
-    let recepient = "0x31119260c0Bd3a8Ad822878B687efc3AFB60B603";
+    let recepient = (await web3.eth.getAccounts())[1];
     let c = await AssuredCampaign.new(...params({ recepient }));
     assert.notEqual(
       recepient,
