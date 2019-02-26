@@ -1,11 +1,23 @@
 const AssuredCampaign = artifacts.require("./AssuredCampaign.sol");
 const tryCatch = require("./helpers/exceptions").tryCatch;
 const errTypes = require("./helpers/exceptions").errTypes;
+const jumpForward = require("./helpers/time").jumpForward;
+const make_snapshot = require("./helpers/time").make_snapshot;
+const goto_snapshot = require("./helpers/time").goto_snapshot;
 
 const deployer_address = AssuredCampaign.class_defaults.from;
 
-const params = ({ start, end, target, profit, minAmount, stakePct,
-                  ent_hot_account, ent_cold_account, recepient }) => {
+function params({
+  start,
+  end,
+  target,
+  profit,
+  minAmount,
+  stakePct,
+  ent_hot_account,
+  ent_cold_account,
+  recepient
+}) {
   let current_time = Date.now();
   return [
     start || current_time - 120,
@@ -20,7 +32,19 @@ const params = ({ start, end, target, profit, minAmount, stakePct,
   ];
 };
 
+
 contract("Testing campaign", async accounts => {
+
+  let starting_point;
+
+  beforeEach(() => {
+    make_snapshot(Date.now(), (err, res) => {
+      starting_point = res.result;
+    });
+  });
+
+  afterEach(() => goto_snapshot(starting_point));
+
   it("should deploy without an error", async () => {
     let a = await AssuredCampaign.new(...params({}));
     assert.exists(await AssuredCampaign.new(...params({})));
@@ -33,21 +57,30 @@ contract("Testing campaign", async accounts => {
     );
   });
 
-
   it("should have nonzero entrepreneur accounts", async () => {
     await tryCatch(
-      AssuredCampaign.new(...params({ ent_hot_account: "0x0000000000000000000000000000000000000000" })),
+      AssuredCampaign.new(
+        ...params({
+          ent_hot_account: "0x0000000000000000000000000000000000000000"
+        })
+      ),
       errTypes.revert
     );
     await tryCatch(
-      AssuredCampaign.new(...params({ ent_cold_account: "0x0000000000000000000000000000000000000000" })),
+      AssuredCampaign.new(
+        ...params({
+          ent_cold_account: "0x0000000000000000000000000000000000000000"
+        })
+      ),
       errTypes.revert
     );
   });
 
   it("should have a nonzero recepient account", async () => {
     await tryCatch(
-      AssuredCampaign.new(...params({ recepient: "0x0000000000000000000000000000000000000000" })),
+      AssuredCampaign.new(
+        ...params({ recepient: "0x0000000000000000000000000000000000000000" })
+      ),
       errTypes.revert
     );
   });

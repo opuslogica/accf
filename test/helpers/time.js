@@ -1,31 +1,53 @@
-const Web3latest = require("web3");
-const web3latest = new Web3latest(web3.currentProvider);
-
-const timeJump = async (time) => {
-  await web3latest.currentProvider.send({
+function send({method, params, id}, c) {
+  web3.currentProvider.send({
     jsonrpc: "2.0",
+    method: method,
+    params: params || [],
+    id: id || Date.now()
+  }, c || ((err, res) => {
+    if (err) console.log(err);
+  }));
+}
+
+
+function make_snapshot(id, c) {
+  send({
+    method: "evm_snapshot",
+    id: id
+  }, c);
+}
+
+
+function goto_snapshot(id, c) {
+  send({
+    method: "evm_revert",
+    params: [id]
+  }, c);
+}
+
+function jumpForward(duration, c) {
+  send({
     method: "evm_increaseTime",
-    params: [time],
-    id: Date.now()
-  });
-};
+    params: [duration],
+    id: duration
+  }, c);
+}
 
-const currentBlockNumber = async () => await web3latest.eth.getBlockNumber();
 
-const getBlockTimestamp = async (blockNumber = 0) => {
-  return (await web3latest.eth.getBlock(blockNumber)).timestamp;
-};
+async function currentBlockNumber() {
+  await web3.eth.getBlockNumber();
+}
 
-const equalizeTime = async (true_time, target_block) => {
-  let block_time = await getBlockTimestamp(
-    target_block || (await currentBlockNumber())
-  );
-  await timeJump((true_time || Date.now()) - block_time);
-};
+
+async function getBlockTimestamp(blockNumber = 0) {
+  await web3.eth.getBlock(blockNumber).timestamp;
+}
+
 
 module.exports = {
-  timeJump,
+  jumpForward,
+  make_snapshot,
+  goto_snapshot,
   currentBlockNumber,
   getBlockTimestamp,
-  equalizeTime
 };
