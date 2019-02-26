@@ -36,8 +36,8 @@ contract("AssuredCampaign", async accounts => {
   }) {
     let current_time = Date.now();
     return [
-      start || current_time - 120,
-      end || (start || current_time) - 420,
+      start || current_time,
+      end || ((start || current_time) + (3600 * 24)),
       target || 50,
       profit || 10,
       minAmount || 2,
@@ -49,13 +49,25 @@ contract("AssuredCampaign", async accounts => {
   };
 
   it("should deploy without an error", async () => {
-    let a = await AssuredCampaign.new(...params({}));
     assert.exists(await AssuredCampaign.new(...params({})));
   });
 
   it("should have a far enough start time", async () => {
     await tryCatch(
       AssuredCampaign.new(...params({ start: 1 })),
+      errTypes.revert
+    );
+  });
+
+  it("should have a duration of at least 24 hours", async () => {
+    let start_point = Date.now();
+    assert.isOk(await AssuredCampaign.new(...params({
+      start: start_point, end: start_point + (60 * 60 * 24)
+    })));
+    await tryCatch(
+      AssuredCampaign.new(...params({
+        start: start_point, end: start_point + (60 * 60 * 24) - 1
+      })),
       errTypes.revert
     );
   });
@@ -113,7 +125,17 @@ contract("AssuredCampaign", async accounts => {
     assert.notEqual(await c.entAccount, await c.recepientAccount);
   });
 
-  it("should have a positive target amount");
+  it("should have a positive target amount", async () => {
+    // assert.isOk(AssuredCampaign.new(...params({ target: 1000000 })));
+    // await tryCatch(
+    //   AssuredCampaign.new(...params({ target: 0 })),
+    //   errTypes.revert
+    // );
+    // await tryCatch(
+    //   AssuredCampaign.new(...params({ target: -1 })),
+    //   errTypes.revert
+    // );
+  });
 
   it("shouldn't overflow with the target specification");
 
