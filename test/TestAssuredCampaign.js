@@ -6,7 +6,7 @@ const make_snapshot = require("./helpers/time").make_snapshot;
 const goto_snapshot = require("./helpers/time").goto_snapshot;
 
 
-contract("Testing campaign", async accounts => {
+contract("AssuredCampaign", async accounts => {
 
   let starting_point;
   let deployer_address;
@@ -112,6 +112,48 @@ contract("Testing campaign", async accounts => {
     );
     assert.notEqual(await c.entAccount, await c.recepientAccount);
   });
+
+  it("should have a positive target amount");
+
+  it("shouldn't overflow with the target specification");
+
+  it("shouldn't have a positive stake percentage");
+
+  it("shouldn't overflow with the stake percentage");
+
+  it("should only receive stakes from the entrepreneur's hot account");
+
+  it("should accept multiple staking payments before the pledging stage");
+
+  it("shouldn't overflow when adding stakes");
+
+  it("should accept and store pledges and their contributions");
+
+  it("should detect whether a pledge exists");
+
+  it("should be able to accept multiple pledging payments from the same person");
+
+  it("shouldn't overflow with the pledging amount");
+
+  it("shouldn't overflow with the pledging balance");
+
+  it("should only refund to people with positive balance");
+
+  it("shouldn't refund to people who have been refunded");
+
+  it("should have refund amount that at least as much as the person's balance");
+
+  it("should have a proportional refund amount");
+
+  it("should be able to return the indivisible stakes to the entrepreneur's cold account");
+
+  it("should only return the remaining stakes if it hasn't been returned before");
+
+  it("should calculate the remaining stakes correctly");
+
+  it("should have the entrepreneur's share as the stakedAmount plus the profitted amount");
+
+  it("should have the recepient to receive everything but the entrepreneur's share");
 });
 
 // 2549405445, 8549405445, 50, 10, 2, 0x31119260c0Bd3a8Ad822878B687efc3AFB60B603, 0x31119260c0Bd3a8Ad822878B687efc3AFB60B603
