@@ -1,5 +1,7 @@
 pragma solidity ^0.5.4;
 
+import { SafeMath } from "./SafeMath.sol";
+
 contract AssuredCampaign {
 
     uint256 public startTime;
@@ -125,8 +127,8 @@ contract AssuredCampaign {
     {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(entHotAccount == msg.sender, "Only the entrepreneur's hot account can stake");
-        stakedAmount += msg.value;
-        emit newStake(amount, stakedAmount >= targetAmount * entStakePct);
+        stakedAmount = SafeMath.add(stakedAmount, msg.value);
+        emit newStake(amount, stakedAmount >= SafeMath.mul(targetAmount, entStakePct));
     }
 
 
@@ -139,7 +141,9 @@ contract AssuredCampaign {
         require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
 
         if (pledgeExists(msg.sender)) {
-            addressToPledge[msg.sender].balance += amount;
+            addressToPledge[msg.sender].balance = SafeMath.add(
+                addressToPledge[msg.sender].balance, amount
+            );
         } else {
             Pledge memory p = Pledge({
                 pledging_address: address(msg.sender),
@@ -149,7 +153,7 @@ contract AssuredCampaign {
             pledges.push(p);
             addressToPledge[msg.sender] = p;
         }
-        amountRaised += amount;
+        amountRaised = SafeMath.add(amountRaised, amount);
 
         emit newPledge(msg.sender, amount, amountRaised, pledges.length);
     }
@@ -161,6 +165,7 @@ contract AssuredCampaign {
     {
         require(addressToPledge[msg.sender].balance > 0, "must have pledged something to get a refund");
         require(!addressToPledge[msg.sender].refunded, "can't get a refund more than once");
+        // to fix
         uint256 amount = addressToPledge[msg.sender].balance * (1 + stakedAmount / amountRaised);
         addressToPledge[msg.sender].refunded = true;
         msg.sender.transfer(amount);
@@ -186,8 +191,8 @@ contract AssuredCampaign {
     public
     _terminationStage
     {
-        uint256 entShare = stakedAmount + entProfitAmount;
-        uint256 recepientShare = amountRaised - entShare;
+        uint256 entShare = SafeMath.add(stakedAmount, entProfitAmount);
+        uint256 recepientShare = SafeMath.sub(amountRaised, entShare);
         if (!entProfitted) {
             entProfitted = true;
             entColdAccount.transfer(entShare);
@@ -219,12 +224,13 @@ contract AssuredCampaign {
     {
         uint256 cursor;
         for (uint i; i < pledges.length; i++) {
+            // to fix
             cursor += pledges[i].balance * stakedAmount / amountRaised;
         }
 
         uint256 remainder;
         if (cursor >= 0) {
-            remainder = stakedAmount - cursor;
+            remainder = SafeMath.sub(stakedAmount, cursor);
         }
         return remainder;
     }
