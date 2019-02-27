@@ -48,7 +48,7 @@ contract AssuredCampaign {
     {
         require(startTime < now, "You can't pledge before the start time");
         require(now < deadline, "You can't pledge after the deadline");
-        require(stakedAmount >= targetAmount * entStakePct, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
+        require(stakedAmount >= SafeMath.mul(targetAmount, entStakePct), "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
         _;
     }
 
@@ -61,7 +61,7 @@ contract AssuredCampaign {
 
     modifier _terminationStage()
     {
-        require(amountRaised >= targetAmount + stakedAmount, "Can't distribute raised funds if the target amount isn't reached");
+        require(amountRaised >= SafeMath.add(targetAmount, stakedAmount), "Can't distribute raised funds if the target amount isn't reached");
         require(now > deadline, "Can't distribute raised funds before the deadline");
         _;
     }
@@ -79,7 +79,7 @@ contract AssuredCampaign {
     modifier _refundingStage()
     {
         require(now > deadline, "Can't request a refund prior to the deadline");
-        require(amountRaised <= targetAmount + stakedAmount, "Can't get a refund if the target amount is reached");
+        require(amountRaised <= SafeMath.add(targetAmount, stakedAmount), "Can't get a refund if the target amount is reached");
         _;
     }
 
