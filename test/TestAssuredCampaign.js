@@ -173,7 +173,17 @@ contract("AssuredCampaign", async accounts => {
     assert.equal(await c.stakedAmount(), 4);
   });
 
-  it("should accept more stakes than minimum");
+  it("should accept more stakes than minimum", async () => {
+    let c = await AssuredCampaign.new(...params({}));
+    let min_stake = await c.entStakePct() * await c.targetAmount();
+    assert.isOk(
+      await c.stake(min_stake + 1, {
+        value: min_stake + 1, from: deployer_hot_account
+      }));
+    assert.equal(await c.stakedAmount(), min_stake + 1);
+  });
+
+  it("should accept more stakes than target amount");
 
   it("should accept and store pledges and their contributions");
 
