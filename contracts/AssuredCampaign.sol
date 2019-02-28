@@ -1,8 +1,9 @@
 pragma solidity ^0.5.4;
 
 import { SafeMath } from "./SafeMath.sol";
+import { Ownable } from "./Ownable.sol";
 
-contract AssuredCampaign {
+contract AssuredCampaign is Ownable {
 
     uint256 public startTime;
     uint256 public deadline;
