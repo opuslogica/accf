@@ -140,13 +140,11 @@ contract AssuredCampaign is Ownable {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
 
-        bool first_time = _pledgeExists(msg.sender);
+        uint256 balance = 0;
+
+        bool first_time = !_pledgeExists(msg.sender);
 
         if (first_time) {
-            addressToPledge[msg.sender].balance = SafeMath.add(
-                addressToPledge[msg.sender].balance, amount
-            );
-        } else {
             Pledge memory p = Pledge({
                 pledging_address: address(msg.sender),
                 balance: amount,
@@ -154,10 +152,16 @@ contract AssuredCampaign is Ownable {
             });
             pledges.push(p);
             addressToPledge[msg.sender] = p;
+            balance = p.balance;
+        } else {
+            Pledge storage p = addressToPledge[msg.sender];
+            p.balance = SafeMath.add(p.balance, amount);
+            balance = p.balance;
         }
+
         amountRaised = SafeMath.add(amountRaised, amount);
 
-        emit newPledge(first_time, amount, amountRaised, pledges.length);
+        emit newPledge(first_time, balance, amountRaised, pledges.length);
     }
 
     function refund()
@@ -209,11 +213,7 @@ contract AssuredCampaign is Ownable {
     internal
     view
     returns (bool) {
-        return !(
-            addressToPledge[a].pledging_address == address(0x0) &&
-            addressToPledge[a].balance == 0 &&
-            !addressToPledge[a].refunded
-        );
+        return addressToPledge[a].pledging_address != address(0x0);
     }
 
     function pledgeExists(address a)
@@ -229,12 +229,7 @@ contract AssuredCampaign is Ownable {
     view
     returns (uint256) {
         require(_pledgeExists(a));
-        for (uint i; i < pledges.length; i++) {
-            if (pledges[i].pledging_address == a) {
-                return pledges[i].balance;
-            }
-        }
-        return 0;
+        return addressToPledge[a].balance;
     }
 
     function fetchPledgeBalance(address a)
@@ -257,11 +252,7 @@ contract AssuredCampaign is Ownable {
     view
     returns (bool) {
         require(_pledgeExists(a));
-        for (uint i; i < pledges.length; i++) {
-            if (pledges[i].pledging_address == a) {
-                return pledges[i].refunded;
-            }
-        }
+        return addressToPledge[a].refunded;
     }
 
     function hasPledgeBeenRefunded(address a)
