@@ -237,6 +237,7 @@ contract("AssuredCampaign", async accounts => {
     );
     jumpForward(start - await currentBlockTime() + 60 * 60);
     assert.isOk(await c.pledge(amount, {value: amount, from: account}));
+    assert.equal(amount, Number(await c.fetchMyBalance({ from: account })));
   });
 
   it("should accept pledges before the deadline", async () => {
