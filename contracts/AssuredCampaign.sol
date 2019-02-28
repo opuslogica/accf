@@ -140,8 +140,6 @@ contract AssuredCampaign is Ownable {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
 
-        uint256 balance = 0;
-
         bool first_time = !_pledgeExists(msg.sender);
 
         if (first_time) {
@@ -152,16 +150,14 @@ contract AssuredCampaign is Ownable {
             });
             pledges.push(p);
             addressToPledge[msg.sender] = p;
-            balance = p.balance;
         } else {
             Pledge storage p = addressToPledge[msg.sender];
             p.balance = SafeMath.add(p.balance, amount);
-            balance = p.balance;
         }
 
         amountRaised = SafeMath.add(amountRaised, amount);
 
-        emit newPledge(first_time, balance, amountRaised, pledges.length);
+        emit newPledge(first_time, amount, amountRaised, pledges.length);
     }
 
     function refund()
