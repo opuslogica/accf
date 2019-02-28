@@ -140,7 +140,7 @@ contract AssuredCampaign is Ownable {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(amount >= contribMinAmount, "Pledging amount should be no less than contribMinAmount");
 
-        if (pledgeExists(msg.sender)) {
+        if (_pledgeExists(msg.sender)) {
             addressToPledge[msg.sender].balance = SafeMath.add(
                 addressToPledge[msg.sender].balance, amount
             );
@@ -204,9 +204,8 @@ contract AssuredCampaign is Ownable {
         }
     }
 
-    function pledgeExists(address a)
-    public
-    onlyOwner
+    function _pledgeExists(address a)
+    internal
     view
     returns (bool) {
         return !(
@@ -216,12 +215,20 @@ contract AssuredCampaign is Ownable {
         );
     }
 
+    function pledgeExists(address a)
+    public
+    onlyOwner
+    view
+    returns (bool) {
+        return _pledgeExists(a);
+    }
+
     function fetchPledgeBalance(address a)
     public
     onlyOwner
     view
     returns (uint256) {
-        require(pledgeExists(a));
+        require(_pledgeExists(a));
         for (uint i; i < pledges.length; i++) {
             if (pledges[i].pledging_address == a) {
                 return pledges[i].balance;
@@ -235,7 +242,7 @@ contract AssuredCampaign is Ownable {
     onlyOwner
     view
     returns (bool) {
-        require(pledgeExists(a));
+        require(_pledgeExists(a));
         for (uint i; i < pledges.length; i++) {
             if (pledges[i].pledging_address == a) {
                 return pledges[i].refunded;
