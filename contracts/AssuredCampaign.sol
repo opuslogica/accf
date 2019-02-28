@@ -131,7 +131,6 @@ contract AssuredCampaign is Ownable {
         emit newStake(amount, stakedAmount >= minStakeRequired);
     }
 
-
     function pledge(uint256 amount)
     public
     _pledgingStage
@@ -157,7 +156,6 @@ contract AssuredCampaign is Ownable {
 
         emit newPledge(amount, amountRaised, pledges.length);
     }
-
 
     function refund()
     public
@@ -223,9 +221,8 @@ contract AssuredCampaign is Ownable {
         return _pledgeExists(a);
     }
 
-    function fetchPledgeBalance(address a)
-    public
-    onlyOwner
+    function _fetchPledgeBalance(address a)
+    internal
     view
     returns (uint256) {
         require(_pledgeExists(a));
@@ -237,9 +234,23 @@ contract AssuredCampaign is Ownable {
         return 0;
     }
 
-    function hasPledgeBeenRefunded(address a)
+    function fetchPledgeBalance(address a)
     public
     onlyOwner
+    view
+    returns (uint256) {
+        return _fetchPledgeBalance(a);
+    }
+
+    function fetchMyBalance()
+    public
+    view
+    returns (uint256) {
+        return _fetchPledgeBalance(msg.sender);
+    }
+
+    function _hasPledgeBeenRefunded(address a)
+    internal
     view
     returns (bool) {
         require(_pledgeExists(a));
@@ -248,6 +259,21 @@ contract AssuredCampaign is Ownable {
                 return pledges[i].refunded;
             }
         }
+    }
+
+    function hasPledgeBeenRefunded(address a)
+    public
+    onlyOwner
+    view
+    returns (bool) {
+        return _hasPledgeBeenRefunded(a);
+    }
+
+    function haveIBeenRefunded()
+    public
+    view
+    returns (bool) {
+        return _hasPledgeBeenRefunded(msg.sender);
     }
 
     function pledgeCount()
