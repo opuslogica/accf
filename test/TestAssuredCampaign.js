@@ -68,6 +68,10 @@ contract("AssuredCampaign", async accounts => {
   });
 
   it("should have a duration of at least 24 hours", async () => {
+    // Since starting point is declared before campaign initialization,
+    // this test may fail if some other test fails due to lagging.
+    // That's why euqlizeTime is there.
+    await equalizeTime();
     let start_point = currentTime() + 60;
     assert.isOk(await AssuredCampaign.new(...params({
       start: start_point, end: start_point + (60 * 60 * 24)
@@ -134,6 +138,17 @@ contract("AssuredCampaign", async accounts => {
   });
 
   it("should only accept stakes before the start time of the campaign", async () => {
+    let start = currentTime() + 60;
+    let c = await AssuredCampaign.new(...params({ start }));
+
+    assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+
+    jumpForward(start - await currentBlockTime());
+
+    await tryCatch(
+      c.stake(2, {value: 2, from: deployer_hot_account}),
+      errTypes.revert
+    );
   });
 
   it("should only receive stakes from the entrepreneur's hot account", async () => {
