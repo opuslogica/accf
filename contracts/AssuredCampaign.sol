@@ -216,6 +216,39 @@ contract AssuredCampaign is Ownable {
         );
     }
 
+    function fetchPledgeBalance(address a)
+    public
+    onlyOwner
+    view
+    returns (uint256) {
+        require(pledgeExists(a));
+        for (uint i; i < pledges.length; i++) {
+            if (pledges[i].pledging_address == a) {
+                return pledges[i].balance;
+            }
+        }
+        return 0;
+    }
+
+    function hasPledgeBeenRefunded(address a)
+    public
+    onlyOwner
+    view
+    returns (bool) {
+        require(pledgeExists(a));
+        for (uint i; i < pledges.length; i++) {
+            if (pledges[i].pledging_address == a) {
+                return pledges[i].refunded;
+            }
+        }
+    }
+
+    function pledgeCount()
+    public
+    view
+    returns (uint) {
+        return pledges.length;
+    }
 
     function calculateRemainingStake()
     internal
@@ -224,7 +257,6 @@ contract AssuredCampaign is Ownable {
     {
         uint256 cursor;
         for (uint i; i < pledges.length; i++) {
-            // to fix
             cursor += pledges[i].balance * stakedAmount / amountRaised;
         }
 
