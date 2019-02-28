@@ -31,7 +31,7 @@ contract AssuredCampaign is Ownable {
     uint256 public amountRaised;
 
     bool entProfitted;
-    bool entGotRemainingStake;
+    bool entGotIndivisibleStakePortion;
     bool recepientReceivedFunding;
 
     modifier _stakingStage()
@@ -88,7 +88,7 @@ contract AssuredCampaign is Ownable {
         uint256 current_balance
     );
 
-    event gotRemainingStake(
+    event gotIndivisibleStakePortion(
         uint256 amount,
         uint256 current_balance
     );
@@ -169,18 +169,18 @@ contract AssuredCampaign is Ownable {
         emit newRefund(amount, address(this).balance);
     }
 
-    function retrieveRemainingStake()
+    function retrieveIndivisibleStakePortion()
     public
     _refundingStage
     {
-        require(msg.sender == entHotAccount, "Only the entrepreneur's hot account can retrieve the remaining stake");
-        require(!entGotRemainingStake, "Can only retrieve the remaining stake once");
-        uint256 remaining_stake = calculateRemainingStake();
-        require(remaining_stake > 0, "No remainder; The stake is proportionally divisible for all pledgers");
-        if (!entGotRemainingStake) {
-            entGotRemainingStake = true;
-            entColdAccount.transfer(remaining_stake);
-            emit gotRemainingStake(remaining_stake, address(this).balance);
+        require(msg.sender == entHotAccount, "Only the entrepreneur's hot account can retrieve the indivisible stake amount");
+        require(!entGotIndivisibleStakePortion, "Can only retrieve the indivisible stake amount once");
+        uint256 amount = _calculateIndivisibleStakePortion();
+        require(amount > 0, "No remainder; The stake is proportionally divisible for all pledgers");
+        if (!entGotIndivisibleStakePortion) {
+            entGotIndivisibleStakePortion = true;
+            entColdAccount.transfer(amount);
+            emit gotIndivisibleStakePortion(amount, address(this).balance);
         }
     }
 
@@ -283,7 +283,7 @@ contract AssuredCampaign is Ownable {
         return pledges.length;
     }
 
-    function calculateRemainingStake()
+    function _calculateIndivisibleStakePortion()
     internal
     view
     returns (uint256)
@@ -298,5 +298,14 @@ contract AssuredCampaign is Ownable {
             remainder = SafeMath.sub(stakedAmount, cursor);
         }
         return remainder;
+    }
+
+    function calculateIndivisibleStakePortion()
+    public
+    _refundingStage
+    view
+    returns (uint256) {
+        require(msg.sender == entHotAccount || msg.sender == recepientAccount || isOwner(), "Only entrepreneur, the recepient and the deployer can see the amount of indivisible stake");
+        return _calculateIndivisibleStakePortion();
     }
 }
