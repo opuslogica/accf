@@ -333,10 +333,21 @@ contract("AssuredCampaign", async accounts => {
     assert.equal(amount * 3, Number(await c.fetchMyBalance({ from: deployer_account })));
   });
 
-  it("should be able to raise more than the targetAmount as the edge case");
+  it("should accept the entire targetAmount from one person too", async () => {
+    let start = currentTime() + 120;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = Number(await c.targetAmount());
 
-  it("should accept the entire targetAmount from one person too");
+    let min_stake = Number(await c.minStakeRequired());
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
 
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+
+    assert.isOk(await c.pledge(amount, { value: amount, from: deployer_account }));
+    assert.equal(amount, Number(await c.fetchMyBalance({ from: deployer_account })));
+  });
+
+  it("should be able to raise more than the targetAmount");
 
   // Refunding Stage
 
