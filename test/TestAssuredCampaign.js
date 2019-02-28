@@ -10,7 +10,6 @@ const jumpForward = require("./helpers/time").jumpForward;
 
 
 contract("AssuredCampaign", async accounts => {
-
   let starting_point;
   let deployer_account;
 
@@ -41,7 +40,7 @@ contract("AssuredCampaign", async accounts => {
     let current_time = currentTime();
     return [
       start || current_time + 120,
-      end || ((start || (current_time + 120)) + (60 * 60 * 24)),
+      end || (start || current_time + 120) + 60 * 60 * 24,
       target || 50,
       profit || 10,
       minAmount || 2,
@@ -50,7 +49,10 @@ contract("AssuredCampaign", async accounts => {
       ent_cold_account || deployer_account,
       recepient || deployer_account
     ];
-  };
+  }
+
+
+  // Init
 
   it("should deploy without an error", async () => {
     assert.exists(await AssuredCampaign.new(...params({})));
@@ -73,13 +75,21 @@ contract("AssuredCampaign", async accounts => {
     // That's why euqlizeTime is there.
     let start_point = currentTime() + 60;
     await equalizeTime();
-    assert.isOk(await AssuredCampaign.new(...params({
-      start: start_point, end: start_point + (60 * 60 * 24)
-    })));
+    assert.isOk(
+      await AssuredCampaign.new(
+        ...params({
+          start: start_point,
+          end: start_point + 60 * 60 * 24
+        })
+      )
+    );
     await tryCatch(
-      AssuredCampaign.new(...params({
-        start: start_point, end: start_point + (60 * 60 * 24) - 1
-      })),
+      AssuredCampaign.new(
+        ...params({
+          start: start_point,
+          end: start_point + 60 * 60 * 24 - 1
+        })
+      ),
       errTypes.revert
     );
   });
@@ -137,17 +147,22 @@ contract("AssuredCampaign", async accounts => {
     assert.notEqual(await c.entAccount, await c.recepientAccount);
   });
 
+  it("should store minStakeRequired correctly");
+
+
+  // Staking Stage
+
   it("should only accept stakes before the start time of the campaign", async () => {
     let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
 
-    assert.isOk(await c.stake(2, {value: 2, from: deployer_account}));
+    assert.isOk(await c.stake(2, { value: 2, from: deployer_account }));
     assert.equal(await c.stakedAmount(), 2);
 
-    jumpForward(start - await currentBlockTime());
+    jumpForward(start - (await currentBlockTime()));
 
     await tryCatch(
-      c.stake(2, {value: 2, from: deployer_account}),
+      c.stake(2, { value: 2, from: deployer_account }),
       errTypes.revert
     );
   });
@@ -159,7 +174,7 @@ contract("AssuredCampaign", async accounts => {
     let other_account = (await web3.eth.getAccounts())[1];
     let c = await AssuredCampaign.new(...params({}));
     await tryCatch(
-      c.stake(2, {value: 2, from: other_account}),
+      c.stake(2, { value: 2, from: other_account }),
       errTypes.revert
     );
     assert.notEqual(await c.stakedAmount(), 2);
@@ -167,9 +182,9 @@ contract("AssuredCampaign", async accounts => {
 
   it("should accept multiple staking payments before the pledging stage", async () => {
     let c = await AssuredCampaign.new(...params({}));
-    assert.isOk(await c.stake(2, {value: 2, from: deployer_account}));
+    assert.isOk(await c.stake(2, { value: 2, from: deployer_account }));
     assert.equal(await c.stakedAmount(), 2);
-    assert.isOk(await c.stake(2, {value: 2, from: deployer_account}));
+    assert.isOk(await c.stake(2, { value: 2, from: deployer_account }));
     assert.equal(await c.stakedAmount(), 4);
   });
 
@@ -178,8 +193,10 @@ contract("AssuredCampaign", async accounts => {
     let min_stake = await c.minStakeRequired();
     assert.isOk(
       await c.stake(min_stake + 1, {
-        value: min_stake + 1, from: deployer_account
-      }));
+        value: min_stake + 1,
+        from: deployer_account
+      })
+    );
     assert.equal(await c.stakedAmount(), min_stake + 1);
   });
 
@@ -188,10 +205,15 @@ contract("AssuredCampaign", async accounts => {
     let targetAmount = await c.targetAmount();
     assert.isOk(
       await c.stake(targetAmount + 100, {
-        value: targetAmount + 100, from: deployer_account
-      }));
+        value: targetAmount + 100,
+        from: deployer_account
+      })
+    );
     assert.equal(await c.stakedAmount(), targetAmount + 100);
   });
+
+
+  //Pledging Stage
 
   it("shouldn't accept pledges if entrepreneur hasn't staked enough", async () => {
     let account = (await web3.eth.getAccounts())[1];
@@ -199,10 +221,13 @@ contract("AssuredCampaign", async accounts => {
     let c = await AssuredCampaign.new(...params({ start }));
     let min_stake = await c.minStakeRequired();
     let amount = await c.contribMinAmount();
-    await c.stake(min_stake - 1, {value: min_stake - 1, from: deployer_account});
-    jumpForward(start - await currentBlockTime());
+    await c.stake(min_stake - 1, {
+      value: min_stake - 1,
+      from: deployer_account
+    });
+    jumpForward(start - (await currentBlockTime()));
     await tryCatch(
-      c.pledge(amount, {value: amount, from: account}),
+      c.pledge(amount, { value: amount, from: account }),
       errTypes.revert
     );
   });
@@ -212,11 +237,11 @@ contract("AssuredCampaign", async accounts => {
     let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
     let min_stake = await c.minStakeRequired();
-    let amount = await c.contribMinAmount() - 1;
-    await c.stake(min_stake, {value: min_stake, from: deployer_account});
-    jumpForward(start - await currentBlockTime());
+    let amount = (await c.contribMinAmount()) - 1;
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
+    jumpForward(start - (await currentBlockTime()));
     await tryCatch(
-      c.pledge(amount, {value: amount, from: account}),
+      c.pledge(amount, { value: amount, from: account }),
       errTypes.revert
     );
   });
@@ -229,14 +254,14 @@ contract("AssuredCampaign", async accounts => {
 
     let min_stake = await c.minStakeRequired();
 
-    await c.stake(min_stake, {value: min_stake, from: deployer_account});
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
 
     await tryCatch(
-      c.pledge(amount, {value: amount, from: account}),
+      c.pledge(amount, { value: amount, from: account }),
       errTypes.revert
     );
-    jumpForward(start - await currentBlockTime() + 60 * 60);
-    assert.isOk(await c.pledge(amount, {value: amount, from: account}));
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+    assert.isOk(await c.pledge(amount, { value: amount, from: account }));
     assert.equal(amount, Number(await c.fetchMyBalance({ from: account })));
   });
 
@@ -247,19 +272,18 @@ contract("AssuredCampaign", async accounts => {
     let amount = await c.contribMinAmount();
     let account = (await web3.eth.getAccounts())[1];
 
-
     let min_stake = await c.minStakeRequired();
-    await c.stake(min_stake, {value: min_stake, from: deployer_account});
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
 
     await tryCatch(
-      c.pledge(amount, {value: amount, from: account}),
+      c.pledge(amount, { value: amount, from: account }),
       errTypes.revert
     );
 
-    jumpForward(deadline - await currentBlockTime() + 1);
+    jumpForward(deadline - (await currentBlockTime()) + 1);
 
     await tryCatch(
-      c.pledge(amount, {value: amount, from: account}),
+      c.pledge(amount, { value: amount, from: account }),
       errTypes.revert
     );
   });
@@ -273,23 +297,27 @@ contract("AssuredCampaign", async accounts => {
     let cold_account = await c.entColdAccount();
 
     let min_stake = await c.minStakeRequired();
-    await c.stake(min_stake, {value: min_stake, from: hot_account });
+    await c.stake(min_stake, { value: min_stake, from: hot_account });
 
-    jumpForward(start - await currentBlockTime() + 60 * 60);
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
 
-    assert.isOk(await c.pledge(amount, {value: amount, from: hot_account }));
+    assert.isOk(await c.pledge(amount, { value: amount, from: hot_account }));
     assert.equal(amount, Number(await c.fetchMyBalance({ from: hot_account })));
-    assert.isOk(await c.pledge(amount, {value: amount, from: cold_account }));
-    assert.equal(amount, Number(await c.fetchMyBalance({ from: cold_account })));
+    assert.isOk(await c.pledge(amount, { value: amount, from: cold_account }));
+    assert.equal(
+      amount,
+      Number(await c.fetchMyBalance({ from: cold_account }))
+    );
   });
-
-  it("should detect whether an address has pledged");
 
   it("should be able to accept multiple pledging payments from the same person");
 
   it("should be able to raise more than the targetAmount as the edge case");
 
   it("should accept the entire targetAmount from one person too");
+
+
+  // Refunding Stage
 
   it("should only refund to people with positive balance");
 
@@ -299,15 +327,33 @@ contract("AssuredCampaign", async accounts => {
 
   it("should have a proportional refund amount");
 
-  it("should be able to return the indivisible stakes to the entrepreneur's cold account");
+  it("only entrepreneur, the deployer and the recepient can see the remaining indivisible stake");
+
+  it("should calculate remaining indivisible stake amount correctly");
 
   it("should only return the remaining stakes if it hasn't been returned before");
 
-  it("should calculate the remaining stakes correctly");
+  it("should be able to return the indivisible stakes to the entrepreneur's cold account");
+
+  // Success Stage
 
   it("should have the entrepreneur's share as the stakedAmount plus the profitted amount");
 
   it("should have the recepient to receive everything but the entrepreneur's share");
+
+
+  // Any Stage
+
+  it("should detect whether an address has pledged");
+
+  it("should fetch pledge balances correctly");
+
+  it("should return the refunding status of a pledger correctly");
+
 });
 
+
+
+
+// Can fed below into Remix deployer for testing
 // 2549405445,8549405445,50,10,2,15,"0x31119260c0Bd3a8Ad822878B687efc3AFB60B603","0x31119260c0Bd3a8Ad822878B687efc3AFB60B603","0x31119260c0Bd3a8Ad822878B687efc3AFB60B603"
