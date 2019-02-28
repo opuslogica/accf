@@ -152,6 +152,13 @@ contract("AssuredCampaign", async accounts => {
   });
 
   it("should only receive stakes from the entrepreneur's hot account", async () => {
+    let other_account = (await web3.eth.getAccounts())[1];
+    let c = await AssuredCampaign.new(...params({}));
+    await tryCatch(
+      c.stake(2, {value: 2, from: other_account}),
+      errTypes.revert
+    );
+
   });
 
   it("should accept multiple staking payments before the pledging stage");
