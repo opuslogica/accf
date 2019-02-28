@@ -206,6 +206,7 @@ contract AssuredCampaign is Ownable {
 
     function pledgeExists(address a)
     public
+    onlyOwner
     view
     returns (bool) {
         return !(
