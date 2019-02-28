@@ -152,6 +152,9 @@ contract("AssuredCampaign", async accounts => {
   });
 
   it("should only receive stakes from the entrepreneur's hot account", async () => {
+    // ent_cold_account is already stored separately,
+    // and we know deployer_hot_account successfully stakes.
+
     let other_account = (await web3.eth.getAccounts())[1];
     let c = await AssuredCampaign.new(...params({}));
     await tryCatch(
@@ -161,9 +164,13 @@ contract("AssuredCampaign", async accounts => {
 
   });
 
-  it("should accept multiple staking payments before the pledging stage");
+  it("should accept multiple staking payments before the pledging stage", async () => {
+    let c = await AssuredCampaign.new(...params({}));
+    assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+  });
 
-  it("shouldn't overflow when adding stakes");
+  it("should accept more stakes than minimum");
 
   it("should accept and store pledges and their contributions");
 
