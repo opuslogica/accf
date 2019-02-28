@@ -142,6 +142,7 @@ contract("AssuredCampaign", async accounts => {
     let c = await AssuredCampaign.new(...params({ start }));
 
     assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.equal(await c.stakedAmount(), 2);
 
     jumpForward(start - await currentBlockTime());
 
@@ -161,13 +162,15 @@ contract("AssuredCampaign", async accounts => {
       c.stake(2, {value: 2, from: other_account}),
       errTypes.revert
     );
-
+    assert.notEqual(await c.stakedAmount(), 2);
   });
 
   it("should accept multiple staking payments before the pledging stage", async () => {
     let c = await AssuredCampaign.new(...params({}));
     assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.equal(await c.stakedAmount(), 2);
     assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.equal(await c.stakedAmount(), 4);
   });
 
   it("should accept more stakes than minimum");
