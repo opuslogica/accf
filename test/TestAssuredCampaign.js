@@ -227,17 +227,16 @@ contract("AssuredCampaign", async accounts => {
     let amount = await c.contribMinAmount();
     let account = (await web3.eth.getAccounts())[1];
 
-
     let min_stake = await c.minStakeRequired();
+
     await c.stake(min_stake, {value: min_stake, from: deployer_account});
 
     await tryCatch(
       c.pledge(amount, {value: amount, from: account}),
       errTypes.revert
     );
-    // jumpForward(start - await currentBlockTime() + 60 * 60);
-    // await c.pledge(amount, {value: amount, from: account});
-    // assert.isOk(await c.pledge(amount, {value: amount, from: account}));
+    jumpForward(start - await currentBlockTime() + 60 * 60);
+    assert.isOk(await c.pledge(amount, {value: amount, from: account}));
   });
 
   it("should accept pledges before the deadline", async () => {
@@ -278,13 +277,9 @@ contract("AssuredCampaign", async accounts => {
     jumpForward(start - await currentBlockTime() + 60 * 60);
 
     assert.isOk(await c.pledge(amount, {value: amount, from: hot_account }));
-    // assert.equal(amount, await c.fetchPledgeBalance(
-    //   hot_account, {value: hot_account, from: deployer_account}
-    // ));
+    assert.equal(amount, Number(await c.fetchMyBalance({ from: hot_account })));
     assert.isOk(await c.pledge(amount, {value: amount, from: cold_account }));
-    // assert.equal(amount, await c.fetchPledgeBalance(
-    //   cold_account, {value: cold_account, from: deployer_account}
-    // ));
+    assert.equal(amount, Number(await c.fetchMyBalance({ from: cold_account })));
   });
 
   it("should detect whether an address has pledged");
