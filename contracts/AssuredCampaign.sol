@@ -54,7 +54,6 @@ contract AssuredCampaign is Ownable {
     }
 
     event newPledge(
-        address pledge_address,
         uint256 amount,
         uint256 raised_thus_far,
         uint256 pledge_count
@@ -85,7 +84,6 @@ contract AssuredCampaign is Ownable {
     }
 
     event newRefund(
-        address refunding_address,
         uint256 amount,
         uint256 current_balance
     );
@@ -156,7 +154,7 @@ contract AssuredCampaign is Ownable {
         }
         amountRaised = SafeMath.add(amountRaised, amount);
 
-        emit newPledge(msg.sender, amount, amountRaised, pledges.length);
+        emit newPledge(amount, amountRaised, pledges.length);
     }
 
 
@@ -170,7 +168,7 @@ contract AssuredCampaign is Ownable {
         uint256 amount = addressToPledge[msg.sender].balance * (1 + stakedAmount / amountRaised);
         addressToPledge[msg.sender].refunded = true;
         msg.sender.transfer(amount);
-        emit newRefund(msg.sender, amount, address(this).balance);
+        emit newRefund(amount, address(this).balance);
     }
 
     function retrieveRemainingStake()
