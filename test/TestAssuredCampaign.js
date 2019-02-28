@@ -183,7 +183,15 @@ contract("AssuredCampaign", async accounts => {
     assert.equal(await c.stakedAmount(), min_stake + 1);
   });
 
-  it("should accept more stakes than target amount");
+  it("should accept more stakes than target amount", async () => {
+    let c = await AssuredCampaign.new(...params({}));
+    let targetAmount = await c.targetAmount();
+    assert.isOk(
+      await c.stake(targetAmount + 100, {
+        value: targetAmount + 100, from: deployer_hot_account
+      }));
+    assert.equal(await c.stakedAmount(), targetAmount + 100);
+  });
 
   it("should accept and store pledges and their contributions");
 
