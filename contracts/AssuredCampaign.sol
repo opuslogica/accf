@@ -14,7 +14,8 @@ contract AssuredCampaign is Ownable {
 
     uint256 public targetAmount;
     uint256 public contribMinAmount;
-    uint256 public entStakePct;
+    uint256 entStakePct;
+    uint256 public minStakeRequired;
     uint256 public entProfitAmount;
 
     uint256 public stakedAmount;
@@ -33,7 +34,6 @@ contract AssuredCampaign is Ownable {
     bool entGotRemainingStake;
     bool recepientReceivedFunding;
 
-
     modifier _stakingStage()
     {
         require(now < startTime, "Entrepreneur can't stake after the start time");
@@ -49,7 +49,7 @@ contract AssuredCampaign is Ownable {
     {
         require(startTime < now, "You can't pledge before the start time");
         require(now < deadline, "You can't pledge after the deadline");
-        require(stakedAmount >= SafeMath.mul(targetAmount, entStakePct), "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
+        require(stakedAmount >= minStakeRequired, "Entrepreneur doesn't have enough staked to assure your pledge's profit in case of a failed campaign");
         _;
     }
 
@@ -115,6 +115,7 @@ contract AssuredCampaign is Ownable {
         entHotAccount = ent_hot_account;
         entColdAccount = ent_cold_account;
         entStakePct = stakePct;
+        minStakeRequired = SafeMath.div(SafeMath.mul(entStakePct, targetAmount), 100);
         recepientAccount = recepient;
         contribMinAmount = minAmount;
     }
@@ -127,7 +128,7 @@ contract AssuredCampaign is Ownable {
         require(amount == msg.value, "Transaction doesn't have enough value as the claimed amount");
         require(entHotAccount == msg.sender, "Only the entrepreneur's hot account can stake");
         stakedAmount = SafeMath.add(stakedAmount, msg.value);
-        emit newStake(amount, stakedAmount >= SafeMath.mul(targetAmount, entStakePct));
+        emit newStake(amount, stakedAmount >= minStakeRequired);
     }
 
 
@@ -164,7 +165,6 @@ contract AssuredCampaign is Ownable {
     {
         require(addressToPledge[msg.sender].balance > 0, "must have pledged something to get a refund");
         require(!addressToPledge[msg.sender].refunded, "can't get a refund more than once");
-        // to fix
         uint256 amount = addressToPledge[msg.sender].balance * (1 + stakedAmount / amountRaised);
         addressToPledge[msg.sender].refunded = true;
         msg.sender.transfer(amount);

@@ -12,10 +12,10 @@ const jumpForward = require("./helpers/time").jumpForward;
 contract("AssuredCampaign", async accounts => {
 
   let starting_point;
-  let deployer_hot_account;
+  let deployer_account;
 
   before(async () => {
-    deployer_hot_account = (await web3.eth.getAccounts())[0];
+    deployer_account = (await web3.eth.getAccounts())[0];
   });
 
   beforeEach(async () => {
@@ -46,9 +46,9 @@ contract("AssuredCampaign", async accounts => {
       profit || 10,
       minAmount || 2,
       stakePct || 10,
-      ent_hot_account || deployer_hot_account,
-      ent_cold_account || deployer_hot_account,
-      recepient || deployer_hot_account
+      ent_hot_account || deployer_account,
+      ent_cold_account || deployer_account,
+      recepient || deployer_account
     ];
   };
 
@@ -131,7 +131,7 @@ contract("AssuredCampaign", async accounts => {
     let c = await AssuredCampaign.new(...params({ recepient }));
     assert.notEqual(
       recepient,
-      deployer_hot_account,
+      deployer_account,
       "For this test, recepient address has to be different from entrepreneur's address"
     );
     assert.notEqual(await c.entAccount, await c.recepientAccount);
@@ -141,20 +141,20 @@ contract("AssuredCampaign", async accounts => {
     let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
 
-    assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.isOk(await c.stake(2, {value: 2, from: deployer_account}));
     assert.equal(await c.stakedAmount(), 2);
 
     jumpForward(start - await currentBlockTime());
 
     await tryCatch(
-      c.stake(2, {value: 2, from: deployer_hot_account}),
+      c.stake(2, {value: 2, from: deployer_account}),
       errTypes.revert
     );
   });
 
   it("should only receive stakes from the entrepreneur's hot account", async () => {
     // ent_cold_account is already stored separately,
-    // and we know deployer_hot_account successfully stakes.
+    // and we know deployer_account successfully stakes.
 
     let other_account = (await web3.eth.getAccounts())[1];
     let c = await AssuredCampaign.new(...params({}));
@@ -167,18 +167,18 @@ contract("AssuredCampaign", async accounts => {
 
   it("should accept multiple staking payments before the pledging stage", async () => {
     let c = await AssuredCampaign.new(...params({}));
-    assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.isOk(await c.stake(2, {value: 2, from: deployer_account}));
     assert.equal(await c.stakedAmount(), 2);
-    assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
+    assert.isOk(await c.stake(2, {value: 2, from: deployer_account}));
     assert.equal(await c.stakedAmount(), 4);
   });
 
   it("should accept more stakes than minimum", async () => {
     let c = await AssuredCampaign.new(...params({}));
-    let min_stake = await c.entStakePct() * await c.targetAmount();
+    let min_stake = await c.minStakeRequired();
     assert.isOk(
       await c.stake(min_stake + 1, {
-        value: min_stake + 1, from: deployer_hot_account
+        value: min_stake + 1, from: deployer_account
       }));
     assert.equal(await c.stakedAmount(), min_stake + 1);
   });
@@ -188,7 +188,7 @@ contract("AssuredCampaign", async accounts => {
     let targetAmount = await c.targetAmount();
     assert.isOk(
       await c.stake(targetAmount + 100, {
-        value: targetAmount + 100, from: deployer_hot_account
+        value: targetAmount + 100, from: deployer_account
       }));
     assert.equal(await c.stakedAmount(), targetAmount + 100);
   });
@@ -197,9 +197,9 @@ contract("AssuredCampaign", async accounts => {
     let account = (await web3.eth.getAccounts())[1];
     let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
-    let min_stake = await c.entStakePct() * await c.targetAmount();
+    let min_stake = await c.minStakeRequired();
     let amount = await c.contribMinAmount();
-    await c.stake(min_stake - 1, {value: min_stake - 1, from: deployer_hot_account});
+    await c.stake(min_stake - 1, {value: min_stake - 1, from: deployer_account});
     jumpForward(start - await currentBlockTime());
     await tryCatch(
       c.pledge(amount, {value: amount, from: account}),
@@ -211,9 +211,9 @@ contract("AssuredCampaign", async accounts => {
     let account = (await web3.eth.getAccounts())[1];
     let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
-    let min_stake = await c.entStakePct() * await c.targetAmount();
+    let min_stake = await c.minStakeRequired();
     let amount = await c.contribMinAmount() - 1;
-    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+    await c.stake(min_stake, {value: min_stake, from: deployer_account});
     jumpForward(start - await currentBlockTime());
     await tryCatch(
       c.pledge(amount, {value: amount, from: account}),
@@ -228,15 +228,16 @@ contract("AssuredCampaign", async accounts => {
     let account = (await web3.eth.getAccounts())[1];
 
 
-    let min_stake = await c.entStakePct() * await c.targetAmount();
-    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+    let min_stake = await c.minStakeRequired();
+    await c.stake(min_stake, {value: min_stake, from: deployer_account});
 
     await tryCatch(
       c.pledge(amount, {value: amount, from: account}),
       errTypes.revert
     );
-    jumpForward(start - await currentBlockTime() + 60 * 60);
-    assert.isOk(await c.pledge(amount, {value: amount, from: account}));
+    // jumpForward(start - await currentBlockTime() + 60 * 60);
+    // await c.pledge(amount, {value: amount, from: account});
+    // assert.isOk(await c.pledge(amount, {value: amount, from: account}));
   });
 
   it("should accept pledges before the deadline", async () => {
@@ -247,8 +248,8 @@ contract("AssuredCampaign", async accounts => {
     let account = (await web3.eth.getAccounts())[1];
 
 
-    let min_stake = await c.entStakePct() * await c.targetAmount();
-    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+    let min_stake = await c.minStakeRequired();
+    await c.stake(min_stake, {value: min_stake, from: deployer_account});
 
     await tryCatch(
       c.pledge(amount, {value: amount, from: account}),
@@ -267,15 +268,23 @@ contract("AssuredCampaign", async accounts => {
     let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
     let amount = await c.contribMinAmount();
-    let account = (await web3.eth.getAccounts())[1];
 
-    let min_stake = await c.entStakePct() * await c.targetAmount();
-    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+    let hot_account = await c.entHotAccount();
+    let cold_account = await c.entColdAccount();
+
+    let min_stake = await c.minStakeRequired();
+    await c.stake(min_stake, {value: min_stake, from: hot_account });
 
     jumpForward(start - await currentBlockTime() + 60 * 60);
 
-    assert.isOk(await c.pledge(amount, {value: amount, from: await c.entHotAccount()}));
-    assert.isOk(await c.pledge(amount, {value: amount, from: await c.entColdAccount()}));
+    assert.isOk(await c.pledge(amount, {value: amount, from: hot_account }));
+    // assert.equal(amount, await c.fetchPledgeBalance(
+    //   hot_account, {value: hot_account, from: deployer_account}
+    // ));
+    assert.isOk(await c.pledge(amount, {value: amount, from: cold_account }));
+    // assert.equal(amount, await c.fetchPledgeBalance(
+    //   cold_account, {value: cold_account, from: deployer_account}
+    // ));
   });
 
   it("should detect whether an address has pledged");
