@@ -40,8 +40,8 @@ contract("AssuredCampaign", async accounts => {
     // default values should result in successful test deployment.
     let current_time = currentTime();
     return [
-      start || current_time + 60,
-      end || ((start || (current_time + 60)) + (60 * 60 * 24)),
+      start || current_time + 120,
+      end || ((start || (current_time + 120)) + (60 * 60 * 24)),
       target || 50,
       profit || 10,
       minAmount || 2,
@@ -71,8 +71,8 @@ contract("AssuredCampaign", async accounts => {
     // Since starting point is declared before campaign initialization,
     // this test may fail if some other test fails due to lagging.
     // That's why euqlizeTime is there.
-    await equalizeTime();
     let start_point = currentTime() + 60;
+    await equalizeTime();
     assert.isOk(await AssuredCampaign.new(...params({
       start: start_point, end: start_point + (60 * 60 * 24)
     })));
@@ -138,7 +138,7 @@ contract("AssuredCampaign", async accounts => {
   });
 
   it("should only accept stakes before the start time of the campaign", async () => {
-    let start = currentTime() + 60;
+    let start = currentTime() + 120;
     let c = await AssuredCampaign.new(...params({ start }));
 
     assert.isOk(await c.stake(2, {value: 2, from: deployer_hot_account}));
@@ -193,15 +193,98 @@ contract("AssuredCampaign", async accounts => {
     assert.equal(await c.stakedAmount(), targetAmount + 100);
   });
 
-  it("should accept and store pledges and their contributions");
+  it("shouldn't accept pledges if entrepreneur hasn't staked enough", async () => {
+    let account = (await web3.eth.getAccounts())[1];
+    let start = currentTime() + 120;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let min_stake = await c.entStakePct() * await c.targetAmount();
+    let amount = await c.contribMinAmount();
+    await c.stake(min_stake - 1, {value: min_stake - 1, from: deployer_hot_account});
+    jumpForward(start - await currentBlockTime());
+    await tryCatch(
+      c.pledge(amount, {value: amount, from: account}),
+      errTypes.revert
+    );
+  });
 
-  it("should detect whether a pledge exists");
+  it("should accept pledges no less than contribMinAmount", async () => {
+    let account = (await web3.eth.getAccounts())[1];
+    let start = currentTime() + 120;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let min_stake = await c.entStakePct() * await c.targetAmount();
+    let amount = await c.contribMinAmount() - 1;
+    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+    jumpForward(start - await currentBlockTime());
+    await tryCatch(
+      c.pledge(amount, {value: amount, from: account}),
+      errTypes.revert
+    );
+  });
+
+  it("should accept pledges only after startTime", async () => {
+    let start = currentTime() + 120;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = await c.contribMinAmount();
+    let account = (await web3.eth.getAccounts())[1];
+
+
+    let min_stake = await c.entStakePct() * await c.targetAmount();
+    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+
+    await tryCatch(
+      c.pledge(amount, {value: amount, from: account}),
+      errTypes.revert
+    );
+    jumpForward(start - await currentBlockTime() + 60 * 60);
+    assert.isOk(await c.pledge(amount, {value: amount, from: account}));
+  });
+
+  it("should accept pledges before the deadline", async () => {
+    let start = currentTime() + 120;
+    let deadline = start + 60 * 60 * 24;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = await c.contribMinAmount();
+    let account = (await web3.eth.getAccounts())[1];
+
+
+    let min_stake = await c.entStakePct() * await c.targetAmount();
+    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+
+    await tryCatch(
+      c.pledge(amount, {value: amount, from: account}),
+      errTypes.revert
+    );
+
+    jumpForward(deadline - await currentBlockTime() + 1);
+
+    await tryCatch(
+      c.pledge(amount, {value: amount, from: account}),
+      errTypes.revert
+    );
+  });
+
+  it("should accept pledges from entrepreneur and both of his hot and cold accounts", async () => {
+    let start = currentTime() + 120;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = await c.contribMinAmount();
+    let account = (await web3.eth.getAccounts())[1];
+
+    let min_stake = await c.entStakePct() * await c.targetAmount();
+    await c.stake(min_stake, {value: min_stake, from: deployer_hot_account});
+
+    jumpForward(start - await currentBlockTime() + 60 * 60);
+
+    assert.isOk(await c.pledge(amount, {value: amount, from: await c.entHotAccount()}));
+    assert.isOk(await c.pledge(amount, {value: amount, from: await c.entColdAccount()}));
+  });
+
+  it("should detect whether an address has pledged");
 
   it("should be able to accept multiple pledging payments from the same person");
 
-  it("shouldn't overflow with the pledging amount");
+  it("should be able to raise more than the targetAmount as the edge case");
 
-  it("shouldn't overflow with the pledging balance");
+  it("should accept the entire targetAmount from one person too");
 
   it("should only refund to people with positive balance");
 
