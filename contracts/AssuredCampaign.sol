@@ -80,7 +80,7 @@ contract AssuredCampaign is Ownable {
     modifier _refundingStage()
     {
         require(now > deadline, "Can't request a refund prior to the deadline");
-        require(amountRaised <= SafeMath.add(targetAmount, stakedAmount), "Can't get a refund if the target amount is reached");
+        require(amountRaised < targetAmount, "Can't get a refund if the target amount is reached");
         _;
     }
 

@@ -1,12 +1,9 @@
 const AssuredCampaign = artifacts.require("./AssuredCampaign.sol");
-const tryCatch = require("./helpers/exceptions").tryCatch;
-const errTypes = require("./helpers/exceptions").errTypes;
-const currentTime = require("./helpers/time").currentTime;
-const currentBlockTime = require("./helpers/time").currentBlockTime;
-const equalizeTime = require("./helpers/time").equalizeTime;
-const make_snapshot = require("./helpers/time").make_snapshot;
-const goto_snapshot = require("./helpers/time").goto_snapshot;
-const jumpForward = require("./helpers/time").jumpForward;
+const { tryCatch, errTypes } = require("./helpers/exceptions");
+const {
+  currentTime, currentBlockTime, equalizeTime, make_snapshot, goto_snapshot,
+  jumpForward
+} = require("./helpers/time");
 
 contract("AssuredCampaign", async accounts => {
   let starting_point;
@@ -396,37 +393,132 @@ contract("AssuredCampaign", async accounts => {
 
   // Refunding Stage
 
-  it("should only refund to people with positive balance");
+  it("shouldn't allow refunds before deadline", async () => {
+    let start = currentTime() + 120;
+    let deadline = start + 60 * 60 * 24;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = Number(await c.contribMinAmount());
 
-  it("shouldn't refund to people who have been refunded");
+    let min_stake = Number(Number(await c.minStakeRequired()));
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
+
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+
+    await c.pledge(amount, { value: amount, from: deployer_account });
+
+    jumpForward(deadline - (await currentBlockTime()) - 1);
+
+    await tryCatch(
+      c.refund({ from: deployer_account }),
+      errTypes.revert
+    );
+
+    // Time is being floored, since we're less than a second away, this +1 has to exist.
+    jumpForward(deadline - (await currentBlockTime()) + 1);
+
+    assert.isOk(await c.refund({ from: deployer_account }));
+  });
+
+  it("shouldn't allow refunds if target amount is raised", async () => {
+    let start = currentTime() + 120;
+    let deadline = start + 60 * 60 * 24;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = Number(await c.targetAmount());
+
+    let min_stake = Number(Number(await c.minStakeRequired()));
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
+
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+
+    await c.pledge(amount, { value: amount, from: deployer_account });
+
+    jumpForward(deadline - (await currentBlockTime()));
+
+    await tryCatch(
+      c.refund({ from: deployer_account }),
+      errTypes.revert
+    );
+  });
+
+  it("should only refund to people who have pledged in the first place", async () => {
+    let start = currentTime() + 120;
+    let deadline = start + 60 * 60 * 24;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = Number(await c.contribMinAmount());
+    let other_account = (await web3.eth.getAccounts())[1];
+
+    let min_stake = Number(Number(await c.minStakeRequired()));
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
+
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+
+    await c.pledge(amount, { value: amount, from: deployer_account });
+
+    jumpForward(deadline - (await currentBlockTime()) + 60 * 60);
+
+
+    assert.isOk(await c.refund({ from: deployer_account }));
+
+    await tryCatch(
+      c.haveIBeenRefunded({ from: other_account }),
+      errTypes.revert
+    );
+
+    await tryCatch(
+      c.refund({ from: other_account }),
+      errTypes.revert
+    );
+  });
+
+  it("shouldn't refund to people who have been refunded", async () => {
+    let start = currentTime() + 120;
+    let deadline = start + 60 * 60 * 24;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = Number(await c.contribMinAmount());
+
+    let min_stake = Number(Number(await c.minStakeRequired()));
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
+
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+
+    await c.pledge(amount, { value: amount, from: deployer_account });
+
+    jumpForward(deadline - (await currentBlockTime()) + 60 * 60);
+
+
+    assert.isFalse(await c.haveIBeenRefunded({ from: deployer_account }));
+
+    assert.isOk(await c.refund({ from: deployer_account }));
+
+    assert.isTrue(await c.haveIBeenRefunded({ from: deployer_account }));
+
+    await tryCatch(
+      c.refund({ from: deployer_account }),
+      errTypes.revert
+    );
+  });
+
+  it("shouldn't return the indivisible stake portion to the entrepreneur if he calls the a refund, irrespective of whether he has pledged or not", async () => {
+
+  });
 
   it("should have refund amount that at least as much as the person's balance");
 
   it("should have a proportional refund amount");
 
-  it(
-    "only entrepreneur, the deployer and the recepient can see the remaining indivisible stake"
-  );
+  it("only entrepreneur, the deployer and the recepient can see the remaining indivisible stake");
 
   it("should calculate remaining indivisible stake amount correctly");
 
-  it(
-    "should only return the remaining stakes if it hasn't been returned before"
-  );
+  it("should only return the remaining stakes if it hasn't been returned before");
 
-  it(
-    "should be able to return the indivisible stakes to the entrepreneur's cold account"
-  );
+  it("should be able to return the indivisible stakes to the entrepreneur's cold account");
 
   // Success Stage
 
-  it(
-    "should have the entrepreneur's share as the stakedAmount plus the profitted amount"
-  );
+  it("should have the entrepreneur's share as the stakedAmount plus the profitted amount");
 
-  it(
-    "should have the recepient to receive everything but the entrepreneur's share"
-  );
+  it("should have the recepient to receive everything but the entrepreneur's share");
 
   // Any Stage
 
