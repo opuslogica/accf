@@ -8,7 +8,6 @@ const make_snapshot = require("./helpers/time").make_snapshot;
 const goto_snapshot = require("./helpers/time").goto_snapshot;
 const jumpForward = require("./helpers/time").jumpForward;
 
-
 contract("AssuredCampaign", async accounts => {
   let starting_point;
   let deployer_account;
@@ -50,7 +49,6 @@ contract("AssuredCampaign", async accounts => {
       recepient || deployer_account
     ];
   }
-
 
   // Init
 
@@ -151,9 +149,11 @@ contract("AssuredCampaign", async accounts => {
     let target = 23;
     let stakePct = 7;
     let c = await AssuredCampaign.new(...params({ target, stakePct }));
-    assert.equal(Math.floor(target * stakePct / 100), await c.minStakeRequired());
+    assert.equal(
+      Math.floor((target * stakePct) / 100),
+      await c.minStakeRequired()
+    );
   });
-
 
   // Staking Stage
 
@@ -216,7 +216,6 @@ contract("AssuredCampaign", async accounts => {
     );
     assert.equal(await c.stakedAmount(), targetAmount + 100);
   });
-
 
   //Pledging Stage
 
@@ -310,7 +309,7 @@ contract("AssuredCampaign", async accounts => {
     assert.equal(amount, Number(await c.fetchMyBalance({ from: hot_account })));
     assert.isOk(await c.pledge(amount, { value: amount, from: cold_account }));
     assert.equal(
-      (hot_account == cold_account) ? amount * 2 : amount,
+      hot_account == cold_account ? amount * 2 : amount,
       Number(await c.fetchMyBalance({ from: cold_account }))
     );
   });
@@ -324,13 +323,27 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(start - (await currentBlockTime()) + 60 * 60);
 
-
-    assert.isOk(await c.pledge(amount, { value: amount, from: deployer_account }));
-    assert.equal(amount * 1, Number(await c.fetchMyBalance({ from: deployer_account })));
-    assert.isOk(await c.pledge(amount, { value: amount, from: deployer_account }));
-    assert.equal(amount * 2, Number(await c.fetchMyBalance({ from: deployer_account })));
-    assert.isOk(await c.pledge(amount, { value: amount, from: deployer_account }));
-    assert.equal(amount * 3, Number(await c.fetchMyBalance({ from: deployer_account })));
+    assert.isOk(
+      await c.pledge(amount, { value: amount, from: deployer_account })
+    );
+    assert.equal(
+      amount * 1,
+      Number(await c.fetchMyBalance({ from: deployer_account }))
+    );
+    assert.isOk(
+      await c.pledge(amount, { value: amount, from: deployer_account })
+    );
+    assert.equal(
+      amount * 2,
+      Number(await c.fetchMyBalance({ from: deployer_account }))
+    );
+    assert.isOk(
+      await c.pledge(amount, { value: amount, from: deployer_account })
+    );
+    assert.equal(
+      amount * 3,
+      Number(await c.fetchMyBalance({ from: deployer_account }))
+    );
   });
 
   it("should accept the entire targetAmount from one person too", async () => {
@@ -343,8 +356,13 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(start - (await currentBlockTime()) + 60 * 60);
 
-    assert.isOk(await c.pledge(amount, { value: amount, from: deployer_account }));
-    assert.equal(amount, Number(await c.fetchMyBalance({ from: deployer_account })));
+    assert.isOk(
+      await c.pledge(amount, { value: amount, from: deployer_account })
+    );
+    assert.equal(
+      amount,
+      Number(await c.fetchMyBalance({ from: deployer_account }))
+    );
   });
 
   it("should be able to raise more than the targetAmount", async () => {
@@ -359,11 +377,21 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(start - (await currentBlockTime()) + 60 * 60);
 
-    assert.isOk(await c.pledge(amount, { value: amount, from: deployer_account }));
-    assert.equal(amount, Number(await c.fetchMyBalance({ from: deployer_account })));
+    assert.isOk(
+      await c.pledge(amount, { value: amount, from: deployer_account })
+    );
+    assert.equal(
+      amount,
+      Number(await c.fetchMyBalance({ from: deployer_account }))
+    );
 
-    assert.isOk(await c.pledge(other_amount, { value: other_amount, from: other_account }));
-    assert.equal(other_amount, Number(await c.fetchMyBalance({ from: other_account })));
+    assert.isOk(
+      await c.pledge(other_amount, { value: other_amount, from: other_account })
+    );
+    assert.equal(
+      other_amount,
+      Number(await c.fetchMyBalance({ from: other_account }))
+    );
   });
 
   // Refunding Stage
@@ -376,33 +404,53 @@ contract("AssuredCampaign", async accounts => {
 
   it("should have a proportional refund amount");
 
-  it("only entrepreneur, the deployer and the recepient can see the remaining indivisible stake");
+  it(
+    "only entrepreneur, the deployer and the recepient can see the remaining indivisible stake"
+  );
 
   it("should calculate remaining indivisible stake amount correctly");
 
-  it("should only return the remaining stakes if it hasn't been returned before");
+  it(
+    "should only return the remaining stakes if it hasn't been returned before"
+  );
 
-  it("should be able to return the indivisible stakes to the entrepreneur's cold account");
+  it(
+    "should be able to return the indivisible stakes to the entrepreneur's cold account"
+  );
 
   // Success Stage
 
-  it("should have the entrepreneur's share as the stakedAmount plus the profitted amount");
+  it(
+    "should have the entrepreneur's share as the stakedAmount plus the profitted amount"
+  );
 
-  it("should have the recepient to receive everything but the entrepreneur's share");
-
+  it(
+    "should have the recepient to receive everything but the entrepreneur's share"
+  );
 
   // Any Stage
 
-  it("should detect whether an address has pledged");
+  it("should detect whether an arbitrary address has pledged", async () => {
+    let start = currentTime() + 120;
+    let c = await AssuredCampaign.new(...params({ start }));
+    let amount = Number(await c.contribMinAmount());
+    let account_1 = (await web3.eth.getAccounts())[1];
+    let account_2 = (await web3.eth.getAccounts())[2];
 
-  it("should fetch pledge balances correctly");
+    let min_stake = Number(await c.minStakeRequired());
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
 
-  it("should return the refunding status of a pledger correctly");
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
 
+    ([deployer_account, account_2]).forEach(async (x) => {
+        await c.pledge(amount, { value: amount, from: x });
+        assert.isTrue(await c.pledgeExists(x));
+    });
+
+    assert.isFalse(await c.pledgeExists(account_1));
+
+  });
 });
-
-
-
 
 // Can fed below into Remix deployer for testing
 // 2549405445,8549405445,50,10,2,15,"0x31119260c0Bd3a8Ad822878B687efc3AFB60B603","0x31119260c0Bd3a8Ad822878B687efc3AFB60B603","0x31119260c0Bd3a8Ad822878B687efc3AFB60B603"
