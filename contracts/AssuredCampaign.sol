@@ -30,9 +30,9 @@ contract AssuredCampaign is Ownable {
     mapping (address => Pledge) addressToPledge;
     uint256 public amountRaised;
 
-    bool entProfitted;
-    bool entGotIndivisibleStakePortion;
-    bool recepientReceivedFunding;
+    bool public entProfitted;
+    bool public entGotIndivisibleStakePortion;
+    bool public recepientReceivedFunding;
 
     modifier _stakingStage()
     {
