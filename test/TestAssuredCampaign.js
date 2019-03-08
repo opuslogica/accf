@@ -10,8 +10,8 @@ const {
 } = require("./helpers/time");
 
 
-async function moneySpentIn(receipt) {
-  const tx = await web3.eth.getTransaction(receipt.tx);
+async function moneySpentIn(receipt, from) {
+  const tx = await web3.eth.getTransaction(receipt.tx, { from });
   return Number(tx.gas) * Number(tx.gasPrice);
 }
 
@@ -516,11 +516,9 @@ contract("AssuredCampaign", async accounts => {
     assert.isFalse(await c.entGotIndivisibleStakePortion());
   });
 
-  it("should have refund amount that at least as much as the person's balance");
-
   it("should have a proportional refund amount");
 
-  it("only entrepreneur, the deployer and the recepient can see the remaining indivisible stake");
+  it("only entrepreneur, the deployer and the recepient can see the remaining indivisible stake amount");
 
   it("should calculate remaining indivisible stake amount correctly");
 
