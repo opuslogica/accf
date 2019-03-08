@@ -1,9 +1,20 @@
 const AssuredCampaign = artifacts.require("./AssuredCampaign.sol");
 const { tryCatch, errTypes } = require("./helpers/exceptions");
 const {
-  currentTime, currentBlockTime, equalizeTime, make_snapshot, goto_snapshot,
+  currentTime,
+  currentBlockTime,
+  equalizeTime,
+  make_snapshot,
+  goto_snapshot,
   jumpForward
 } = require("./helpers/time");
+
+
+async function moneySpentIn(receipt) {
+  const tx = await web3.eth.getTransaction(receipt.tx);
+  return Number(tx.gas) * Number(tx.gasPrice);
+}
+
 
 contract("AssuredCampaign", async accounts => {
   let starting_point;
@@ -262,7 +273,8 @@ contract("AssuredCampaign", async accounts => {
       errTypes.revert
     );
     jumpForward(start - (await currentBlockTime()) + 60 * 60);
-    assert.isOk(await c.pledge(amount, { value: amount, from: account }));
+    // assert.isOk(await c.pledge(amount, { value: amount, from: account }));
+    let r = (await c.pledge(amount, { value: amount, from: account }));
     assert.equal(amount, Number(await c.fetchMyBalance({ from: account })));
   });
 
@@ -408,10 +420,7 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(deadline - (await currentBlockTime()) - 1);
 
-    await tryCatch(
-      c.refund({ from: deployer_account }),
-      errTypes.revert
-    );
+    await tryCatch(c.refund({ from: deployer_account }), errTypes.revert);
 
     // Time is being floored, since we're less than a second away, this +1 has to exist.
     jumpForward(deadline - (await currentBlockTime()) + 1);
@@ -434,10 +443,7 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(deadline - (await currentBlockTime()));
 
-    await tryCatch(
-      c.refund({ from: deployer_account }),
-      errTypes.revert
-    );
+    await tryCatch(c.refund({ from: deployer_account }), errTypes.revert);
   });
 
   it("should only refund to people who have pledged in the first place", async () => {
@@ -456,7 +462,6 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(deadline - (await currentBlockTime()) + 60 * 60);
 
-
     assert.isOk(await c.refund({ from: deployer_account }));
 
     await tryCatch(
@@ -464,10 +469,7 @@ contract("AssuredCampaign", async accounts => {
       errTypes.revert
     );
 
-    await tryCatch(
-      c.refund({ from: other_account }),
-      errTypes.revert
-    );
+    await tryCatch(c.refund({ from: other_account }), errTypes.revert);
   });
 
   it("shouldn't refund to people who have been refunded", async () => {
@@ -485,21 +487,33 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(deadline - (await currentBlockTime()) + 60 * 60);
 
-
     assert.isFalse(await c.haveIBeenRefunded({ from: deployer_account }));
 
     assert.isOk(await c.refund({ from: deployer_account }));
 
     assert.isTrue(await c.haveIBeenRefunded({ from: deployer_account }));
 
-    await tryCatch(
-      c.refund({ from: deployer_account }),
-      errTypes.revert
-    );
+    await tryCatch(c.refund({ from: deployer_account }), errTypes.revert);
   });
 
   it("shouldn't return the indivisible stake portion to the entrepreneur if he calls the a refund, irrespective of whether he has pledged or not", async () => {
+    let start = currentTime() + 120;
+    let deadline = start + 60 * 60 * 24;
+    let c = await AssuredCampaign.new(...params({ start, deadline }));
+    let amount = Number(await c.contribMinAmount());
 
+    let min_stake = Number(Number(await c.minStakeRequired()));
+    await c.stake(min_stake, { value: min_stake, from: deployer_account });
+
+    jumpForward(start - (await currentBlockTime()) + 60 * 60);
+
+    await c.pledge(amount, { value: amount, from: deployer_account });
+
+    jumpForward(deadline - (await currentBlockTime()) + 60 * 60);
+
+    await c.refund({ from: deployer_account });
+
+    assert.isFalse(await c.entGotIndivisibleStakePortion());
   });
 
   it("should have refund amount that at least as much as the person's balance");
@@ -534,13 +548,12 @@ contract("AssuredCampaign", async accounts => {
 
     jumpForward(start - (await currentBlockTime()) + 60 * 60);
 
-    ([deployer_account, account_2]).forEach(async (x) => {
-        await c.pledge(amount, { value: amount, from: x });
-        assert.isTrue(await c.pledgeExists(x));
+    [deployer_account, account_2].forEach(async x => {
+      await c.pledge(amount, { value: amount, from: x });
+      assert.isTrue(await c.pledgeExists(x));
     });
 
     assert.isFalse(await c.pledgeExists(account_1));
-
   });
 });
 
